@@ -903,6 +903,48 @@ unsigned char ADXL345_WE::Y_AxisFlip_UserCallback_Register(Y_AxisFlip_UserCallba
     return 1;
 }
 
+/* Task suspend/resume for low-power */
+void ADXL345_WE::suspendTask(bool disable_irq, bool sensor_sleep)
+{
+    if (sensor_sleep)
+    {
+        // Put sensor into sleep/standby to avoid generating interrupts
+        setSleep(true);
+    }
+    if (disable_irq)
+    {
+        // Disable GPIO interrupt for the INT pin to avoid wake-ups
+        gpio_isr_handler_remove(GPIO_INT_INPUT_IO);
+        gpio_set_intr_type(GPIO_INT_INPUT_IO, GPIO_INTR_DISABLE);
+        irq_disabled_ = true;
+    }
+    if (Test_taskHandle)
+    {
+        vTaskSuspend(Test_taskHandle);
+        suspended_ = true;
+    }
+}
+
+void ADXL345_WE::resumeTask(bool enable_irq, bool sensor_wakeup)
+{
+    if (sensor_wakeup)
+    {
+        // Wake sensor and return to measure mode
+        setSleep(false);
+    }
+    if (enable_irq && irq_disabled_)
+    {
+        // Re-enable interrupt polarity and handler (default low-active configured in init)
+        setInterruptPolarity(ADXL345_ACT_LOW);
+        irq_disabled_ = false;
+    }
+    if (Test_taskHandle && suspended_)
+    {
+        vTaskResume(Test_taskHandle);
+        suspended_ = false;
+    }
+}
+
 /*Int Handle*/
 void ADXL345_WE::ADXL345_IntHandle_Task(void *parameters)
 {
@@ -922,25 +964,6 @@ void ADXL345_WE::ADXL345_IntHandle_Task(void *parameters)
                     prt->FreeFall_CallBack(prt->FreeFall_cnt);
             }
 
-            // if(!flick)
-            // {
-            //     flick = ~flick;
-            // }
-            // else
-            // {
-            //     flick = ~flick;
-            // }
-            // DimmingParam dimParam;
-            // for (size_t i = 0; i < 32; i++)
-            // {
-            //     for (size_t j = 0; j < Engine::colorNumbers; j++)
-            //     {
-            //         dimParam.pixels[i].color[j] = flick;
-            //     }
-            // }
-            // dimParam.setIntensity(100.0f);
-            // Dimming::instance().setParam(&dimParam);
-
             // ESP_LOGI("ADXL345Int","0x%X",temp);
         }
         else
@@ -957,29 +980,6 @@ void ADXL345_WE::ADXL345_IntHandle_Task(void *parameters)
 
             if (prt->Y_AxisFlip_CallBack)
                 prt->Y_AxisFlip_CallBack(prt->Y_Flip);
-
-            // ESP_LOGI("x","%f",xyz.x);
-            // ESP_LOGI("y","%f",xyz.y);
-            // ESP_LOGI("z","%f",xyz.z);
-
-            // if(prt->Y_Flip == 0 )
-            // {
-            //     flick = 0;
-            // }
-            // else
-            // {
-            //     flick = 0xffff;
-            // }
-            // DimmingParam dimParam;
-            // for (size_t i = 0; i < 32; i++)
-            // {
-            //     for (size_t j = 0; j < Engine::colorNumbers; j++)
-            //     {
-            //         dimParam.pixels[i].color[j] = flick;
-            //     }
-            // }
-            // dimParam.setIntensity(100.0f);
-            // Dimming::instance().setParam(&dimParam);
         }
     }
 }

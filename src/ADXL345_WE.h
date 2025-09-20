@@ -281,6 +281,10 @@ class ADXL345_WE
     void setLowPower(bool lowpwr);
     bool isLowPower();
 
+    /* Task control for low-power sequencing */
+    void suspendTask(bool disable_irq = true, bool sensor_sleep = true);
+    void resumeTask(bool enable_irq = true, bool sensor_wakeup = true);
+
     /* Interrupts */
 
     void setInterrupt(adxl345_int type, uint8_t pin);
@@ -337,6 +341,8 @@ class ADXL345_WE
     void readMultipleRegisters(uint8_t reg, uint8_t count, uint8_t *buf);
     uint32_t Int_data;
     bool adxl345_lowRes;
+    bool irq_disabled_ = false;
+    bool suspended_ = false;
 
   private:
     static void ADXL345_IntHandle_Task(void *parameters);
