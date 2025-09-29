@@ -595,11 +595,13 @@ void ADXL345_WE::setInterruptPolarity(uint8_t pol)
         io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
         gpio_config(&io_conf);
 
-        gpio_install_isr_service(0);
-
         // hook isr handler for specific gpio pin
         Int_data = GPIO_INT_INPUT_IO;
-        gpio_isr_handler_add(GPIO_INT_INPUT_IO, gpio_isr_handler, (void *)&Int_data);
+        esp_err_t add_ret = gpio_isr_handler_add(GPIO_INT_INPUT_IO, gpio_isr_handler, (void *)&Int_data);
+        if (add_ret == ESP_ERR_INVALID_STATE) {
+            (void)gpio_install_isr_service(0);
+            (void)gpio_isr_handler_add(GPIO_INT_INPUT_IO, gpio_isr_handler, (void *)&Int_data);
+        }
     }
     else if (pol == ADXL345_ACT_LOW)
     {
@@ -617,11 +619,13 @@ void ADXL345_WE::setInterruptPolarity(uint8_t pol)
         io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
         gpio_config(&io_conf);
 
-        gpio_install_isr_service(0);
-
         // hook isr handler for specific gpio pin
         Int_data = GPIO_INT_INPUT_IO;
-        gpio_isr_handler_add(GPIO_INT_INPUT_IO, gpio_isr_handler, (void *)&Int_data);
+        esp_err_t add_ret = gpio_isr_handler_add(GPIO_INT_INPUT_IO, gpio_isr_handler, (void *)&Int_data);
+        if (add_ret == ESP_ERR_INVALID_STATE) {
+            (void)gpio_install_isr_service(0);
+            (void)gpio_isr_handler_add(GPIO_INT_INPUT_IO, gpio_isr_handler, (void *)&Int_data);
+        }
     }
     writeRegister(ADXL345_DATA_FORMAT, regVal);
 }
